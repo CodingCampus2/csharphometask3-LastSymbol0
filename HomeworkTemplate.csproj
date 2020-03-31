@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodingCampusCSharpHomework" Version="0.0.18" />
+    <PackageReference Include="CodingCampusCSharpHomework" Version="0.0.20" />
   </ItemGroup>
 
 </Project>
