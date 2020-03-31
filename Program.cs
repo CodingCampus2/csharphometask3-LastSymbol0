@@ -3,107 +3,84 @@ using CodingCampusCSharpHomework;
 
 class Storage
 {
+    public Storage(string descriptionString) => LoadFromString(descriptionString);
     public bool LoadFromString(string descriptionString)
     {
         string[] fields = descriptionString.Split(';');
-        bool isParseSucceed = fields.Length == 4;
+
+        if (fields.Length != 4)
+        {
+            Console.Error.WriteLine("Storage parse error.");
+            return false;
+        }
 
         m_Name = fields[0];
         m_Address = fields[1];
-        isParseSucceed = m_Coordinates.LoadFromString(fields[2], fields[3]);
+        m_Coordinates = new Coordinates(fields[2], fields[3]);
 
-        if (!isParseSucceed)
-        {
-            Console.Error.WriteLine("Storage parse error.");
-        }
-
-        return isParseSucceed;
+        return true;
     }
 
-    public float GetDistanceToPoint(Coordinates point)
-    {
-        return m_Coordinates.GetDistanceToPoint(point);
-    }
+    public float GetDistanceToPoint(Coordinates point) => m_Coordinates.GetDistanceToPoint(point);
 
-    public string GetUserDescription()
-    {
-        return $"Name: {m_Name}; Address: {m_Address}";
-    }
+    public string GetUserDescription() => $"Name: {m_Name}; Address: {m_Address}";
 
     private string m_Name;
     private string m_Address;
-    private Coordinates m_Coordinates = new Coordinates();
+    private Coordinates m_Coordinates;
 }
 
-class Coordinates
+struct Coordinates
 {
-    public bool LoadFromString(string longitudeString, string latitudeString)
+    public Coordinates(string longitudeString, string latitudeString)
     {
-        float longitude = 0.0f, latitude = 0.0f;
-        bool isParseSucceed = float.TryParse(longitudeString, out longitude) && float.TryParse(latitudeString, out latitude);
-
-        if (!isParseSucceed)
-        {
-            Console.Error.WriteLine("Coordinates parse error.");
-        }
-        else
+        if (float.TryParse(longitudeString, out float longitude)
+            && float.TryParse(latitudeString, out float latitude))
         {
             m_Longitude = longitude;
             m_Latitude = latitude;
         }
-
-        return isParseSucceed;
+        else
+        {
+            Console.Error.WriteLine("Coordinates parse error.");
+            m_Longitude = 0f;
+            m_Latitude = 0f;
+        }
     }
 
     public float GetDistanceToPoint(Coordinates point)
     {
-        const float EarthRadiusKm = 6371;
+        const float EarthRadiusKm = 6371f;
 
-        float x = (point.m_Longitude - m_Longitude) * MathF.Cos((m_Latitude + point.m_Latitude) / 2.0f);
+        float x = (point.m_Longitude - m_Longitude) * MathF.Cos((m_Latitude + point.m_Latitude) / 2f);
         float y = point.m_Latitude - m_Latitude;
 
-        return MathF.Sqrt(MathF.Pow(x, 2) + MathF.Pow(y, 2)) * EarthRadiusKm;
+        return MathF.Sqrt(MathF.Pow(x, 2f) + MathF.Pow(y, 2f)) * EarthRadiusKm;
     }
 
     private float m_Longitude { get; set; }
     private float m_Latitude { get; set; }
 }
 
+
 namespace HomeworkTemplate
 {
+    using System.Linq;
     class Program
     {
         static void Main(string[] args)
         {
             Func<Task3, string> TaskSolver = task =>
             {
-                // Your solution goes here
-                // You can get all needed inputs from task.[Property]
-                // Good luck!
-                int placesAmount = task.DefibliratorStorages.Length;
+                Coordinates userCoordinates = new Coordinates(task.UserLongitude, task.UserLatitude);
 
-                Coordinates userCoordinates = new Coordinates();
-                userCoordinates.LoadFromString(task.UserLongitude, task.UserLatitude);
-
-                Storage nearestStorage = new Storage();
-                float distanceToNearestSorage = float.MaxValue;
-
-                for (int i = 0; i < placesAmount; i++)
-                {
-                    string defibliratorStorage = task.DefibliratorStorages[i];
-
-                    Storage storage = new Storage();
-                    storage.LoadFromString(defibliratorStorage);
-                    float distanseToStorage = storage.GetDistanceToPoint(userCoordinates);
-
-                    if (distanseToStorage < distanceToNearestSorage)
-                    {
-                        distanceToNearestSorage = distanseToStorage;
-                        nearestStorage = storage;
-                    }
-                }
-                
-                return nearestStorage.GetUserDescription();
+                return task.DefibliratorStorages
+                    .Select(storageDescription => {
+                        Storage storage = new Storage(storageDescription);
+                        return new { storage, distance = storage.GetDistanceToPoint(userCoordinates) };
+                    })
+                    .Aggregate((s1, s2) => s1.distance < s2.distance ? s1 : s2)
+                    .storage.GetUserDescription();
             };
 
             Task3.CheckSolver(TaskSolver);
